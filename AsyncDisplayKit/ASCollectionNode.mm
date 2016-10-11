@@ -109,18 +109,6 @@
   return [self initWithFrame:CGRectZero collectionViewLayout:layout];
 }
 
-- (instancetype)_initWithCollectionView:(ASCollectionView *)collectionView
-{
-  ASDisplayNodeViewBlock collectionViewBlock = ^UIView *{ return collectionView; };
-  
-  if (self = [super initWithViewBlock:collectionViewBlock]) {
-    // ASCollectionView created directly by the app.  Trigger -loadView to set up collectionNode pointer.
-    __unused ASCollectionView *collectionView = [self view];
-    return self;
-  }
-  return nil;
-}
-
 - (instancetype)initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout
 {
   return [self initWithFrame:frame collectionViewLayout:layout layoutFacilitator:nil];
@@ -131,7 +119,7 @@
   ASDisplayNodeViewBlock collectionViewBlock = ^UIView *{
     return [[ASCollectionView alloc] _initWithFrame:frame collectionViewLayout:layout layoutFacilitator:layoutFacilitator ownedByNode:YES];
   };
-  
+
   if (self = [super initWithViewBlock:collectionViewBlock]) {
     return self;
   }

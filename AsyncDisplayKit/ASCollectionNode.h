@@ -75,13 +75,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak, nonatomic) id <ASCollectionDataSource> dataSource;
 
 /**
- * The number of screens left to scroll before the delegate -collectionNode:beginBatchFetchingWithContext: is called.
- *
- * Defaults to two screenfuls.
- */
-@property (nonatomic, assign) CGFloat leadingScreensForBatching;
-
-/**
  * Tuning parameters for a range type in full mode.
  *
  * @param rangeType The range type to get the tuning parameters for.
@@ -198,11 +191,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)moveSection:(NSInteger)section toSection:(NSInteger)newSection;
 
 /**
- * TODO: Docs
- */
-- (nullable id<ASSectionContext>)contextForSection:(NSInteger)section AS_WARN_UNUSED_RESULT;
-
-/**
  * Inserts items at the locations identified by an array of index paths.
  *
  * @param indexPaths An array of NSIndexPath objects, each representing an item index and section index that together identify an item.
@@ -292,6 +280,12 @@ NS_ASSUME_NONNULL_BEGIN
  *    @c convertIndexPathToCollectionView: on the collection node.
  */
 - (nullable NSIndexPath *)indexPathForNode:(ASCellNode *)cellNode AS_WARN_UNUSED_RESULT;
+
+
+/**
+ * TODO: Docs
+ */
+- (nullable id<ASSectionContext>)contextForSection:(NSInteger)section AS_WARN_UNUSED_RESULT;
 
 @end
 

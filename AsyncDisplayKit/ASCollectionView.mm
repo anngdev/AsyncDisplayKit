@@ -215,12 +215,6 @@ static NSString * const kCellReuseIdentifier = @"_ASCollectionViewCell";
   } _layoutInspectorFlags;
 }
 
-// Used only when ASCollectionView is created directly rather than through ASCollectionNode.
-// We create a node so that logic related to appearance, memory management, etc can be located there
-// for both the node-based and view-based version of the table.
-// This also permits sharing logic with ASTableNode, as the superclass is not UIKit-controlled.
-@property (nonatomic, strong) ASCollectionNode *strongCollectionNode;
-
 // Always set, whether ASCollectionView is created directly or via ASCollectionNode.
 @property (nonatomic, weak)   ASCollectionNode *collectionNode;
 
@@ -245,32 +239,18 @@ static NSString * const kCellReuseIdentifier = @"_ASCollectionViewCell";
 
 - (instancetype)initWithCollectionViewLayout:(UICollectionViewLayout *)layout
 {
-  return [self _initWithFrame:CGRectZero collectionViewLayout:layout ownedByNode:NO];
+  return [self _initWithFrame:CGRectZero collectionViewLayout:layout layoutFacilitator:nil];
 }
 
 - (instancetype)initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout
 {
-  return [self _initWithFrame:frame collectionViewLayout:layout ownedByNode:NO];
+  return [self _initWithFrame:frame collectionViewLayout:layout layoutFacilitator:nil];
 }
 
-- (instancetype)_initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout ownedByNode:(BOOL)ownedByNode
-{
-  return [self _initWithFrame:frame collectionViewLayout:layout layoutFacilitator:nil ownedByNode:ownedByNode];
-}
-
-- (instancetype)_initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout layoutFacilitator:(id<ASCollectionViewLayoutFacilitatorProtocol>)layoutFacilitator ownedByNode:(BOOL)ownedByNode
+- (instancetype)_initWithFrame:(CGRect)frame collectionViewLayout:(UICollectionViewLayout *)layout layoutFacilitator:(id<ASCollectionViewLayoutFacilitatorProtocol>)layoutFacilitator
 {
   if (!(self = [super initWithFrame:frame collectionViewLayout:layout]))
     return nil;
-  
-  if (!ownedByNode) {
-    // See commentary at the definition of .strongCollectionNode for why we create an ASCollectionNode.
-    // FIXME: The _view pointer of the node retains us, but the node will die immediately if we don't
-    // retain it.  At the moment there isn't a great solution to this, so we can't yet move our core
-    // logic to ASCollectionNode (required to have a shared superclass with ASTable*).
-    ASCollectionNode *collectionNode = nil; //[[ASCollectionNode alloc] _initWithCollectionView:self];
-    self.strongCollectionNode = collectionNode;
-  }
   
   _layoutController = [[ASCollectionViewLayoutController alloc] initWithCollectionView:self];
   
@@ -563,12 +543,6 @@ static NSString * const kCellReuseIdentifier = @"_ASCollectionViewCell";
   return [_dataController nodeAtCompletedIndexPath:indexPath];
 }
 
-- (NSIndexPath *)convertIndexPathToCollectionNode:(NSIndexPath *)indexPath
-{
-  ASCellNode *node = [self nodeForItemAtIndexPath:indexPath];
-  return [_dataController indexPathForNode:node];
-}
-
 - (NSIndexPath *)convertIndexPathFromCollectionNode:(NSIndexPath *)indexPath waitingIfNeeded:(BOOL)wait
 {
   ASCellNode *node = [_dataController nodeAtIndexPath:indexPath];
@@ -585,10 +559,10 @@ static NSString * const kCellReuseIdentifier = @"_ASCollectionViewCell";
   return [_dataController supplementaryNodeOfKind:elementKind atIndexPath:indexPath];
 }
 
-//- (NSIndexPath *)indexPathForNode:(ASCellNode *)cellNode
-//{
-//  return [_dataController completedIndexPathForNode:cellNode];
-//}
+- (NSIndexPath *)indexPathForNode:(ASCellNode *)cellNode
+{
+  return [_dataController completedIndexPathForNode:cellNode];
+}
 
 - (NSArray *)visibleNodes
 {
@@ -1330,10 +1304,7 @@ static NSString * const kCellReuseIdentifier = @"_ASCollectionViewCell";
 
 - (id<ASEnvironment>)dataControllerEnvironment
 {
-  if (self.collectionNode) {
-    return self.collectionNode;
-  }
-  return self.strongCollectionNode;
+  return self.collectionNode;
 }
 
 #pragma mark - ASCollectionViewDataControllerSource

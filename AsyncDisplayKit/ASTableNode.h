@@ -84,13 +84,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTuningParameters:(ASRangeTuningParameters)tuningParameters forRangeMode:(ASLayoutRangeMode)rangeMode rangeType:(ASLayoutRangeType)rangeType;
 
 /**
- * The number of screens left to scroll before the delegate -tableView:beginBatchFetchingWithContext: is called.
- *
- * Defaults to two screenfuls.
- */
-@property (nonatomic, assign) CGFloat leadingScreensForBatching;
-
-/**
  * Reload everything from scratch, destroying the working range and all cached nodes.
  *
  * @param completion block to run on completion of asynchronous loading or nil. If supplied, the block is run on

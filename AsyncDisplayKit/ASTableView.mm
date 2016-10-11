@@ -186,13 +186,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
 
 @property (nonatomic, strong, readwrite) ASDataController *dataController;
 
-// Used only when ASTableView is created directly rather than through ASTableNode.
-// We create a node so that logic related to appearance, memory management, etc can be located there
-// for both the node-based and view-based version of the table.
-// This also permits sharing logic with ASCollectionNode, as the superclass is not UIKit-controlled.
-@property (nonatomic, strong) ASTableNode *strongTableNode;
-
-// Always set, whether ASCollectionView is created directly or via ASCollectionNode.
 @property (nonatomic, weak)   ASTableNode *tableNode;
 
 @property (nonatomic) BOOL test_enableSuperUpdateCallLogging;
@@ -264,15 +257,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
   }
   
   [self configureWithDataControllerClass:dataControllerClass];
-  
-  if (!ownedByNode) {
-    // See commentary at the definition of .strongTableNode for why we create an ASTableNode.
-    // FIXME: The _view pointer of the node retains us, but the node will die immediately if we don't
-    // retain it.  At the moment there isn't a great solution to this, so we can't yet move our core
-    // logic to ASTableNode (required to have a shared superclass with ASCollection*).
-    ASTableNode *tableNode = nil; //[[ASTableNode alloc] _initWithTableView:self];
-    self.strongTableNode = tableNode;
-  }
   
   if (!AS_AT_LEAST_IOS9) {
     _retainedLayer = self.layer;
@@ -476,12 +460,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
   return [_dataController nodeAtCompletedIndexPath:indexPath];
 }
 
-- (NSIndexPath *)convertIndexPathToTableNode:(NSIndexPath *)indexPath
-{
-  ASCellNode *node = [self nodeForRowAtIndexPath:indexPath];
-  return [_dataController indexPathForNode:node];
-}
-
 - (NSIndexPath *)convertIndexPathFromTableNode:(NSIndexPath *)indexPath waitingIfNeeded:(BOOL)wait
 {
   ASCellNode *node = [_dataController nodeAtIndexPath:indexPath];
@@ -546,8 +524,9 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
  * TODO: This method was built when the distinction between data source
  * index paths and view index paths was unclear. For compatibility, it
  * still expects data source index paths for the time being.
+ * When the behavior is changed (to use the view index path directly)
+ * we should also remove the @c convertIndexPathFromTableNode: method.
  */
-
 - (void)scrollToRowAtIndexPath:(NSIndexPath *)indexPath atScrollPosition:(UITableViewScrollPosition)scrollPosition animated:(BOOL)animated
 {
   ASDisplayNodeAssertMainThread();
@@ -558,14 +537,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
   } else {
     NSLog(@"Warning: Ignoring request to scroll to row at index path %@ because the item did not reach the table view.", indexPath);
   }
-}
-
-- (void)scrollToNearestSelectedRowAtScrollPosition:(UITableViewScrollPosition)scrollPosition animated:(BOOL)animated
-{
-  ASDisplayNodeAssertMainThread();
-  
-  [self waitUntilAllUpdatesAreCommitted];
-  [super scrollToNearestSelectedRowAtScrollPosition:scrollPosition animated:animated];
 }
 
 /**
@@ -851,14 +822,11 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
     } else {
       return nil;
     }
-
   } else if (_asyncDelegateFlags.tableViewWillSelectRow) {
-    indexPath = [self convertIndexPathToTableNode:indexPath];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    indexPath = [_asyncDelegate tableView:self willSelectRowAtIndexPath:indexPath];
+    return [_asyncDelegate tableView:self willSelectRowAtIndexPath:indexPath];
 #pragma clang diagnostic pop
-    return [self convertIndexPathFromTableNode:indexPath waitingIfNeeded:YES];
   } else {
     return indexPath;
   }
@@ -870,7 +838,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
     ASCellNode *node = [self nodeForRowAtIndexPath:indexPath];
     [_asyncDelegate tableNode:self.tableNode didSelectRowWithNode:node];
   } else if (_asyncDelegateFlags.tableViewDidSelectRow) {
-    indexPath = [self convertIndexPathToTableNode:indexPath];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [_asyncDelegate tableView:self didSelectRowAtIndexPath:indexPath];
@@ -889,12 +856,10 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
       return nil;
     }
   } else if (_asyncDelegateFlags.tableViewWillDeselectRow) {
-    indexPath = [self convertIndexPathToTableNode:indexPath];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    indexPath = [_asyncDelegate tableView:self willDeselectRowAtIndexPath:indexPath];
+    return [_asyncDelegate tableView:self willDeselectRowAtIndexPath:indexPath];
 #pragma clang diagnostic pop
-    return [self convertIndexPathFromTableNode:indexPath waitingIfNeeded:YES];
   } else {
     return indexPath;
   }
@@ -906,7 +871,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
     ASCellNode *node = [self nodeForRowAtIndexPath:indexPath];
     [_asyncDelegate tableNode:self.tableNode didDeselectRowWithNode:node];
   } else if (_asyncDelegateFlags.tableViewDidDeselectRow) {
-    indexPath = [self convertIndexPathToTableNode:indexPath];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [_asyncDelegate tableView:self didDeselectRowAtIndexPath:indexPath];
@@ -920,7 +884,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
     ASCellNode *node = [self nodeForRowAtIndexPath:indexPath];
     return [_asyncDelegate tableNode:self.tableNode shouldHighlightRowWithNode:node];
   } else if (_asyncDelegateFlags.tableViewShouldHighlightRow) {
-
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return [_asyncDelegate tableView:self shouldHighlightRowAtIndexPath:indexPath];
@@ -1503,10 +1466,7 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
 
 - (id<ASEnvironment>)dataControllerEnvironment
 {
-  if (self.tableNode) {
-    return self.tableNode;
-  }
-  return self.strongTableNode;
+  return self.tableNode;
 }
 
 #pragma mark - _ASTableViewCellDelegate
