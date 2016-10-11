@@ -210,6 +210,7 @@
   if ([self pendingState]) {
     return _pendingState.dataSource;
   } else {
+    ASDisplayNodeAssert([self isNodeLoaded], @"ASTableNode should be loaded if pendingState doesn't exist");
     return self.view.asyncDataSource;
   }
 }
@@ -281,34 +282,11 @@ ASEnvironmentCollectionTableSetEnvironmentState(_environmentStateLock)
   [self.view reloadDataWithCompletion:completion];
 }
 
-- (void)reloadData
+- (void)performBatchAnimated:(BOOL)animated updates:(void (^)())updates completion:(void (^)(BOOL))completion
 {
-  [self.view reloadData];
-}
-
-- (void)reloadDataImmediately
-{
-  [self.view reloadDataImmediately];
-}
-
-- (void)beginUpdates
-{
-  [self.dataController beginUpdates];
-}
-
-- (void)endUpdates
-{
-  [self.view endUpdates];
-}
-
-- (void)endUpdatesAnimated:(BOOL)animated
-{
-  [self endUpdatesAnimated:animated completion:nil];
-}
-
-- (void)endUpdatesAnimated:(BOOL)animated completion:(void (^)(BOOL))completion
-{
-  [self.dataController endUpdatesAnimated:animated completion:completion];
+  [self.view beginUpdates];
+  updates();
+  [self.view endUpdatesAnimated:animated completion:completion];
 }
 
 - (void)insertSections:(NSIndexSet *)sections withRowAnimation:(UITableViewRowAnimation)animation

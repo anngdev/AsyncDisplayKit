@@ -64,13 +64,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak, readonly) ASCollectionNode *collectionNode;
 
 /**
- * The number of screens left to scroll before the delegate -collectionView:beginBatchFetchingWithContext: is called.
- *
- * Defaults to two screenfuls.
- */
-@property (nonatomic, assign) CGFloat leadingScreensForBatching;
-
-/**
  * Optional introspection object for the collection view's layout.
  *
  * @discussion Since supplementary and decoration views are controlled by the collection view's layout, this object

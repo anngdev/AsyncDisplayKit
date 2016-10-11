@@ -97,59 +97,19 @@ NS_ASSUME_NONNULL_BEGIN
  * the main thread.
  * @warning This method is substantially more expensive than UITableView's version.
  */
--(void)reloadDataWithCompletion:(void (^ _Nullable)())completion;
+- (void)reloadDataWithCompletion:(nullable void (^)())completion;
 
 /**
- * Reload everything from scratch, destroying the working range and all cached nodes.
+ *  Perform a batch of updates asynchronously, optionally disabling all animations in the batch. This method must be called from the main thread.
+ *  The data source must be updated to reflect the changes before the update block completes.
  *
- * @warning This method is substantially more expensive than UITableView's version.
- */
-- (void)reloadData;
-
-/**
- * Reload everything from scratch entirely on the main thread, destroying the working range and all cached nodes.
- *
- * @warning This method is substantially more expensive than UITableView's version and will block the main thread while
- * all the cells load.
- */
-- (void)reloadDataImmediately;
-
-/**
- *  Begins a series of method calls that insert, delete, select, or reload rows and sections of the table view, with animation enabled and no completion block.
- *
- *  @discussion You call this method to bracket a series of method calls that ends with endUpdates and that consists of operations
- *  to insert, delete, select, and reload rows and sections of the table view. When you call endUpdates, ASTableView begins animating
- *  the operations simultaneously. It's important to remember that the ASTableView will be processing the updates asynchronously after this call is completed.
- *
- *  @warning This method must be called from the main thread.
- */
-- (void)beginUpdates;
-
-/**
- *  Concludes a series of method calls that insert, delete, select, or reload rows and sections of the table view, with animation enabled and no completion block.
- *
- *  @discussion You call this method to bracket a series of method calls that begins with beginUpdates and that consists of operations
- *  to insert, delete, select, and reload rows and sections of the table view. When you call endUpdates, ASTableView begins animating
- *  the operations simultaneously. It's important to remember that the ASTableView will be processing the updates asynchronously after this call is completed.
- *
- *  @warning This method is must be called from the main thread.
- */
-- (void)endUpdates;
-
-/**
- *  Concludes a series of method calls that insert, delete, select, or reload rows and sections of the table view.
- *  You call this method to bracket a series of method calls that begins with beginUpdates and that consists of operations
- *  to insert, delete, select, and reload rows and sections of the table view. When you call endUpdates, ASTableView begins animating
- *  the operations simultaneously. This method is must be called from the main thread. It's important to remember that the ASTableView will
- *  be processing the updates asynchronously after this call and are not guaranteed to be reflected in the ASTableView until
- *  the completion block is executed.
- *
- *  @param animated   NO to disable all animations.
+ *  @param animated   NO to disable animations for this batch
+ *  @param updates    The block that performs the relevant insert, delete, reload, or move operations.
  *  @param completion A completion handler block to execute when all of the operations are finished. This block takes a single
  *                    Boolean parameter that contains the value YES if all of the related animations completed successfully or
  *                    NO if they were interrupted. This parameter may be nil. If supplied, the block is run on the main thread.
  */
-- (void)endUpdatesAnimated:(BOOL)animated completion:(void (^ _Nullable)(BOOL completed))completion;
+- (void)performBatchAnimated:(BOOL)animated updates:(nullable __attribute((noescape)) void (^)())updates completion:(nullable void (^)(BOOL finished))completion;
 
 /**
  *  Blocks execution of the main thread until all section and row updates are committed. This method must be called from the main thread.
@@ -291,34 +251,41 @@ NS_ASSUME_NONNULL_BEGIN
 @optional
 
 /**
- * Similar to -tableView:cellForRowAtIndexPath:.
- *
- * @param tableNode The sender.
- *
- * @param indexPath The index path of the requested node.
- *
- * @return a node for display at this indexpath. This will be called on the main thread and should not implement reuse (it will be called once per row). Unlike UITableView's version, this method
- * is not called when the row is about to display.
+ * TODO: Docs
  */
-- (ASCellNode *)tableNode:(ASTableNode *)tableNode nodeForRowAtIndexPath:(NSIndexPath *)indexPath AS_WARN_UNUSED_RESULT;
-
 - (NSInteger)numberOfSectionsInTableNode:(ASTableNode *)tableNode;
 
+/**
+ * TODO: Docs
+ */
 - (NSInteger)tableNode:(ASTableNode *)tableNode numberOfRowsInSection:(NSInteger)section;
 
 /**
- * Similar to -tableView:nodeForRowAtIndexPath:
- * This method takes precedence over tableNode:nodeForRowAtIndexPath: if implemented.
- * @param tableNode The sender.
+ * Asks the data source for a block to create a node to represent the row at the given index path.
+ * The block will be run by the table node concurrently in the background before the row is inserted
+ * into the table view.
  *
- * @param indexPath The index path of the requested node.
+ * @param tableNode The sender.
+ * @param indexPath The index path of the row.
  *
  * @return a block that creates the node for display at this indexpath.
  *   Must be thread-safe (can be called on the main thread or a background
  *   queue) and should not implement reuse (it will be called once per row).
+ *
+ * @note This method takes precedence over tableNode:nodeForRowAtIndexPath: if implemented.
  */
+- (ASCellNodeBlock)tableNode:(ASTableNode *)tableNode nodeBlockForRowAtIndexPath:(NSIndexPath *)indexPath;
 
-- (ASCellNodeBlock)tableNode:(ASTableNode *)tableNode nodeBlockForRowAtIndexPath:(NSIndexPath *)indexPath AS_WARN_UNUSED_RESULT;
+/**
+ * Asks the data source for a node to represent the row at the given index path.
+ *
+ * @param tableNode The sender.
+ * @param indexPath The index path of the row.
+ *
+ * @return a node to display for this row. This will be called on the main thread and should not implement reuse (it will be called once per row). Unlike UITableView's version, this method
+ * is not called when the row is about to display.
+ */
+- (ASCellNode *)tableNode:(ASTableNode *)tableNode nodeForRowAtIndexPath:(NSIndexPath *)indexPath;
 
 /**
  * Similar to -tableView:cellForRowAtIndexPath:.
@@ -332,7 +299,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (ASCellNode *)tableView:(ASTableView *)tableView nodeForRowAtIndexPath:(NSIndexPath *)indexPath AS_WARN_UNUSED_RESULT ASDISPLAYNODE_DEPRECATED;
 
-
 /**
  * Similar to -tableView:nodeForRowAtIndexPath:
  * This method takes precedence over tableView:nodeForRowAtIndexPath: if implemented.
@@ -344,7 +310,6 @@ NS_ASSUME_NONNULL_BEGIN
  *   Must be thread-safe (can be called on the main thread or a background
  *   queue) and should not implement reuse (it will be called once per row).
  */
-
 - (ASCellNodeBlock)tableView:(ASTableView *)tableView nodeBlockForRowAtIndexPath:(NSIndexPath *)indexPath AS_WARN_UNUSED_RESULT ASDISPLAYNODE_DEPRECATED;
 
 /**

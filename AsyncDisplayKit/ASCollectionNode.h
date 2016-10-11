@@ -75,6 +75,13 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak, nonatomic) id <ASCollectionDataSource> dataSource;
 
 /**
+ * The number of screens left to scroll before the delegate -collectionNode:beginBatchFetchingWithContext: is called.
+ *
+ * Defaults to two screenfuls.
+ */
+@property (nonatomic, assign) CGFloat leadingScreensForBatching;
+
+/**
  * Tuning parameters for a range type in full mode.
  *
  * @param rangeType The range type to get the tuning parameters for.
@@ -125,7 +132,7 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - Editing
 
 /**
- * Registers the given kind of supplementary node for use in creating node-backed supplementary views.
+ * Registers the given kind of supplementary node for use in creating node-backed supplementary elements.
  *
  * @param elementKind The kind of supplementary node that will be requested through the data source.
  *
@@ -138,7 +145,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  *  Perform a batch of updates asynchronously, optionally disabling all animations in the batch. This method must be called from the main thread.
- *  The asyncDataSource must be updated to reflect the changes before the update block completes.
+ *  The data source must be updated to reflect the changes before the update block completes.
  *
  *  @param animated   NO to disable animations for this batch
  *  @param updates    The block that performs the relevant insert, delete, reload, or move operations.
@@ -147,17 +154,6 @@ NS_ASSUME_NONNULL_BEGIN
  *                    NO if they were interrupted. This parameter may be nil. If supplied, the block is run on the main thread.
  */
 - (void)performBatchAnimated:(BOOL)animated updates:(nullable __attribute((noescape)) void (^)())updates completion:(nullable void (^)(BOOL finished))completion;
-
-/**
- *  Perform a batch of updates asynchronously.  This method must be called from the main thread.
- *  The asyncDataSource must be updated to reflect the changes before update block completes.
- *
- *  @param updates    The block that performs the relevant insert, delete, reload, or move operations.
- *  @param completion A completion handler block to execute when all of the operations are finished. This block takes a single
- *                    Boolean parameter that contains the value YES if all of the related animations completed successfully or
- *                    NO if they were interrupted. This parameter may be nil. If supplied, the block is run on the main thread.
- */
-- (void)performBatchUpdates:(nullable __attribute((noescape)) void (^)())updates completion:(nullable void (^)(BOOL finished))completion;
 
 /**
  * Inserts one or more sections.
@@ -201,6 +197,9 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)moveSection:(NSInteger)section toSection:(NSInteger)newSection;
 
+/**
+ * TODO: Docs
+ */
 - (nullable id<ASSectionContext>)contextForSection:(NSInteger)section AS_WARN_UNUSED_RESULT;
 
 /**
@@ -303,19 +302,24 @@ NS_ASSUME_NONNULL_BEGIN
 
 @optional
 
+/**
+ * TODO: Docs
+ */
 - (NSInteger)collectionNode:(ASCollectionNode *)collectionNode numberOfItemsInSection:(NSInteger)section;
 
+/**
+ * TODO: Docs
+ */
 - (NSInteger)numberOfSectionsInCollectionNode:(ASCollectionNode *)collectionNode;
 
 /**
- * Similar to -collectionView:nodeForItemAtIndexPath:
- * This method takes precedence over collectionView:nodeForItemAtIndexPath: if implemented.
+ * Similar to -collectionNode:nodeForItemAtIndexPath:
+ * This method takes precedence over collectionNode:nodeForItemAtIndexPath: if implemented.
  *
- * @param collectionView The sender.
+ * @param collectionNode The sender.
+ * @param indexPath The index path of the item.
  *
- * @param indexPath The index path of the requested node.
- *
- * @return a block that creates the node for display at this indexpath.
+ * @return a block that creates the node for display for this item.
  *   Must be thread-safe (can be called on the main thread or a background
  *   queue) and should not implement reuse (it will be called once per row).
  */
@@ -325,21 +329,20 @@ NS_ASSUME_NONNULL_BEGIN
  * Similar to -collectionView:cellForItemAtIndexPath:.
  *
  * @param collectionView The sender.
+ * @param indexPath The index path of the item.
  *
- * @param indexPath The index path of the requested node.
- *
- * @return a node for display at this indexpath. This will be called on the main thread and should
- *   not implement reuse (it will be called once per row).  Unlike UICollectionView's version,
- *   this method is not called when the row is about to display.
+ * @return A node to display for the given item. This will be called on the main thread and should
+ *   not implement reuse (it will be called once per item).  Unlike UICollectionView's version,
+ *   this method is not called when the item is about to display.
  */
 - (ASCellNode *)collectionNode:(ASCollectionNode *)collectionNode nodeForItemAtIndexPath:(NSIndexPath *)indexPath;
 
 /**
- * Asks the collection view to provide a supplementary node to display in the collection view.
+ * Asks the data source to provide a node to display for the given supplementary element in the collection view.
  *
- * @param collectionView An object representing the collection view requesting this information.
- * @param kind           The kind of supplementary node to provide.
- * @param indexPath      The index path that specifies the location of the new supplementary node.
+ * @param collectionNode The sender.
+ * @param kind           The kind of supplementary element.
+ * @param indexPath      The index path of the supplementary element.
  */
 - (ASCellNode *)collectionNode:(ASCollectionNode *)collectionNode nodeForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath;
 
